@@ -1,17 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Matchmaker-for-the-Web:IK</title>
+  <title>Python Matchmaker — Ian King</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #38bdf8; text-align: center; }
+    .question {
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.05);
+      padding: 15px;
+      border-radius: 10px;
+    }
+    button {
+      padding: 10px 18px;
+      background: #38bdf8;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      color: #0f172a;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover { background: #0ea5e9; }
+    #output {
+      margin-top: 25px;
+      background: rgba(255,255,255,0.08);
+      padding: 15px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 <body>
-  <h1>Matchmaker <3 
-  <p>The following questions (which you are required to answer) will determine if we are the perfect couple for each other.
-</br>
-  For each of the following questions, answer 5 if you strongly agree with the statment in question, or 1 if you don't agree with the statement at all.
-</br>
-  Hopefully we are meant to be. Good luck!
-  </p>
+  <h1>💘 Matchmaker Project</h1>
+  <p>Answer each question (1 = strongly disagree, 5 = strongly agree) and find out your compatibility!</p>
+  
+  <form id="quizForm">
+    <div class="question">
+      <label>1. Computer Science is the best major:</label><br>
+      <input type="number" name="q1" min="1" max="5" required>
+    </div>
+    <div class="question">
+      <label>2. The Chicago White Sox are better than the Cubs:</label><br>
+      <input type="number" name="q2" min="1" max="5" required>
+    </div>
+    <div class="question">
+      <label>3. Piano is the best instrument:</label><br>
+      <input type="number" name="q3" min="1" max="5" required>
+    </div>
+    <div class="question">
+      <label>4. Japan would be the best vacation spot:</label><br>
+      <input type="number" name="q4" min="1" max="5" required>
+    </div>
+    <div class="question">
+      <label>5. A Toyota Prius is the best car:</label><br>
+      <input type="number" name="q5" min="1" max="5" required>
+    </div>
+    <button type="button" id="runBtn">Calculate Compatibility</button>
+  </form>
+
+  <div id="output"></div>
+
+  <script>
+    async function main() {
+      const pyodide = await loadPyodide();
+      document.getElementById("runBtn").onclick = async function() {
+        const form = document.getElementById("quizForm");
+        const data = new FormData(form);
+        const answers = Array.from(data.values()).map(Number);
+        
+        // Python code as a string
+        const pythonCode = `
+questions = [
+   'Computer Science is the best major',
+   'The Chicago White Sox are better than the Cubs',
+   'Piano is the best instrument',
+   'Japan would be the best vacation spot',
+   'Toyota Prius is the best car'
+]
+
+preferred = [3, 4, 5, 5, 1]
+max_score = 5 * len(questions)
+compatibility = []
+
+responses = ${JSON.stringify(answers)}
+
+output = ""
+for i in range(len(questions)):
+    response = responses[i]
+    if response < 1 or response > 5:
+        output += f"Question {i+1}: Please try again, value must be between 1-5\\n"
+        continue
+    q_score = 5 - abs(response - preferred[i])
+    compatibility.append(q_score)
+    if q_score == 5:
+        msg = "We comepletely agree with each other!"
+    elif q_score == 4:
+        msg = "We're almost there!"
+    elif q_score == 3:
+        msg = "We're kinda in-between on this topic."
+    elif q_score == 2:
+        msg = "We aren't really on the same page."
+    else:
+        msg = "We don't agree with each other at all, maybe another one?"
+    output += f"Q{i+1} Compatibility: {q_score} — {msg}\\n"
+
+total = sum(compatibility) * 100 / max_score
+output += f"\\nTotal Compatibility: {total:.1f}%\\n"
+
+if total >= 90:
+    output += "We are truly meant to be with each other! Hooray!\\n"
+elif total >= 80:
+    output += "We could definitely work out. Let's go get some coffee sometime!\\n"
+elif total >= 70:
+    output += "We might have a little work to do, but don't give up just yet!\\n"
+elif total >= 60:
+    output += "We might just be a weekly-basis type-thing, sorry.\\n"
+elif total >= 50:
+    output += "I don't really know. Maybe we could still be friends?\\n"
+else:
+    output += "We're just not cut out for each other. Better luck next time!\\n"
+
+output
+`;
+        const result = await pyodide.runPythonAsync(pythonCode);
+        document.getElementById("output").textContent = result;
+      };
+    }
+    main();
+  </script>
 </body>
 </html>
